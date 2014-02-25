@@ -13,13 +13,15 @@ VOLUME = "sioapps"
 
     1. If [version] is not specified, get version from pom.xml in current directory.
     2. Create any missing directories for path: "#{VOLUME}/[project]/#{YEAR}/#{DATE}--[version]/
-    3. Copy the specified [file] into this path
+    3.- (a or b)
+    3.a. If [file] is specified, copy the given file into path
+    3.b. If [file] is not specified, copy all relevant .war and .zip files for this project into path
   DESCRIPTION
 #                                                                                             #
  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def sio_copy!
-  show_usage unless ARGV.size == 2 or ARGV.size == 3
+  show_usage if ARGV.size < 1 or ARGV.size > 3
   version_not_specified = ARGV.size == 2
 
   project = ARGV[0].upcase
@@ -33,7 +35,7 @@ def sio_copy!
 
   create_any_missing_directories("/Volumes/#{VOLUME}", project, "#{DATE}--#{version}")
   
-  copy_file from: file, to: "/Volumes/#{VOLUME}/#{project}/#{YEAR}/#{DATE}--#{version}"
+  copy_file :from => file, :to => "/Volumes/#{VOLUME}/#{project}/#{YEAR}/#{DATE}--#{version}"
   
   finish! "👍"
 end
@@ -130,13 +132,18 @@ end
 def show_usage
   puts <<-END
 
-   #{"Please provide 2-3 parameters. Recieved #{ARGV.size} parameter(s).".red}
+   #{"Please provide 1-3 parameters. Recieved #{ARGV.size} parameter(s).".red}
 
    #{"Usage:".yellow}
-    siocopy [project] [file] (version)
+    siocopy [project] (file) (version)
 
-    #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war
-    #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war 2.7.3
+      #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war
+      #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war 2.7.3
+
+    siocopy [project] (applications)
+
+      #{"e.g:".green} siocopy samba
+      #{"e.g:".green} siocopy samba studentgui database
 
    #{"This script will:".yellow} #{DESC}
    #{"Projects:".yellow}
