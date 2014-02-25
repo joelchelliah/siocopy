@@ -22,7 +22,8 @@ VOLUME = "sioapps"
 
 def sio_copy!
   show_usage if ARGV.size < 1 or ARGV.size > 3
-  version_not_specified = ARGV.size == 2
+  version_not_specified = ARGV.size < 3
+  file_not_specified = ARGV.size < 2
 
   project = ARGV[0].upcase
   file    = "#{Dir.pwd}/#{ARGV[1]}"
@@ -35,7 +36,13 @@ def sio_copy!
 
   create_any_missing_directories("/Volumes/#{VOLUME}", project, "#{DATE}--#{version}")
   
-  copy_file :from => file, :to => "/Volumes/#{VOLUME}/#{project}/#{YEAR}/#{DATE}--#{version}"
+  destination = "/Volumes/#{VOLUME}/#{project}/#{YEAR}/#{DATE}--#{version}"
+
+  if file_not_specified
+    copy_all_relevant_files :in_project => project, :with_version => version, :to => destination
+  else
+    copy_file :from => file, :to => destination
+  end
   
   finish! "👍"
 end
@@ -94,8 +101,29 @@ def verify_or_make_dir(path, option=nil)
   end
 end
 
+def copy_all_relevant_files(hsh = {})
+  project     = hsh[:in_project]
+  version     = hsh[:with_version]
+  destination = hsh[:to]
+  relevant_files = []
+  if project.downcase == "samba"
+    relevant_files = ["web/war/target/admin.web-#{version}.war",
+                      "studentgui/target/studentgui.portal-#{version}.war",
+                      "database/target/database-#{version}-database.zip"]
+  elsif project.downcase == "bris"
+    relevant_files = ["admin/target/bris-admin-#{version}.war",
+                      "service/target/bris-service-#{version}.war",
+                      "portal/target/bris-portal-#{version}.war",
+                      "database/target/database-#{version}-database.zip"]
+  else
+    error_message "This mode does not have support for the following project", project
+    info_message "Try copying one file at a time using", "siocopy [project] [file]"
+  end
+  relevant_files.each { |file| copy_file :from => file, :to => destination }
+end
+
 def copy_file(hsh = {})
-  file    = hsh[:from]
+  file        = hsh[:from]
   destination = hsh[:to]
   puts "\n >> Copying file: " << "#{file}".pink
   unless File.exists? file
@@ -103,12 +131,15 @@ def copy_file(hsh = {})
     finish!
   end
   dest_file_name = "#{destination}/#{File.basename(file)}"
+  copy_confirmed = true
   if File.exists? dest_file_name
     error_message "File already exists", dest_file_name
-    finish! unless prompt("   ?> Replace this file? [y/n] ") =~ /^y$|^Y$|^yes$|^Yes$/
+    copy_confirmed = prompt("   ?> Replace this file? [y/n] ") =~ /^y$|^Y$|^yes$|^Yes$/
   end
-  FileUtils.cp file, destination
-  info_message "Copied file to", dest_file_name
+  if copy_confirmed
+    FileUtils.cp file, destination
+    info_message "Copied file to", dest_file_name
+  end
 end
 
 def prompt(*args)
@@ -137,13 +168,9 @@ def show_usage
    #{"Usage:".yellow}
     siocopy [project] (file) (version)
 
-      #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war
       #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war 2.7.3
-
-    siocopy [project] (applications)
-
+      #{"e.g:".green} siocopy samba web/war/target/admin.web-2.7.3.war
       #{"e.g:".green} siocopy samba
-      #{"e.g:".green} siocopy samba studentgui database
 
    #{"This script will:".yellow} #{DESC}
    #{"Projects:".yellow}
