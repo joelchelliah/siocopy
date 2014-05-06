@@ -54,7 +54,7 @@ end
 
 def exit_if_not_mounted(volume)
   puts "\n >> Checking for Volume: " << volume.pink
-  unless Dir.exists? "/Volumes/#{volume}"
+  unless File.directory? "/Volumes/#{volume}"
     puts "    > #{volume} was not found".red
     puts "    > make sure that #{volume} is mounted before running this script."
     finish!
@@ -86,7 +86,7 @@ def create_any_missing_directories(root, project, destination_dir)
 end
 
 def verify_or_make_dir(path, option=nil)
-  unless Dir.exists? path
+  unless File.directory? path
     make_dir = "Yes"
     if option == :with_prompt
       error_message "Directory does not exist", path
@@ -117,7 +117,7 @@ def copy_all_relevant_files(hsh = {})
                       "database/target/database-#{version}-database.zip"]
   else
     error_message "This mode does not have support for the following project", project
-    info_message "Try copying one file at a time using", "siocopy [project] [file]"
+    error_message "You should copy one file at a time using", "siocopy #{project} [file]"
   end
   relevant_files.each { |file| copy_file :from => file, :to => destination }
 end
